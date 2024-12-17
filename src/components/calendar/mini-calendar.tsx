@@ -1,17 +1,19 @@
 'use client'
 
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { format } from 'date-fns'
+import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns'
 import { CalendarNavButton } from '@/components/ui/calendar-nav-button'
 import { cn } from '@/lib/utils'
+import { useCalendar } from '@/contexts/calendar-context'
 
 export function MiniCalendarHeader() {
+  const { state, goToPreviousPeriod, goToNextPeriod } = useCalendar()
   return (
     <div className="mb-4 flex items-center justify-between">
-      <h2 className="text-base font-semibold">{format(new Date(), 'MMMM yyyy')}</h2>
+      <h2 className="text-base font-semibold">{format(state.currentMonth, 'MMMM yyyy')}</h2>
       <div className="flex items-center gap-2">
-        <CalendarNavButton icon={ChevronLeft} />
-        <CalendarNavButton icon={ChevronRight} />
+        <CalendarNavButton icon={ChevronLeft} onClick={goToPreviousPeriod} />
+        <CalendarNavButton icon={ChevronRight} onClick={goToNextPeriod} />
       </div>
     </div>
   )
@@ -30,13 +32,13 @@ export function MiniDayHeader({ day }: MiniDayHeaderProps) {
 }
 
 interface MiniDayProps {
-  day: number
+  date: Date
   isToday?: boolean
   isSelected?: boolean
   onClick?: () => void
 }
 
-export function MiniDay({ day, isToday, isSelected, onClick }: MiniDayProps) {
+export function MiniDay({ date, isToday, isSelected, onClick }: MiniDayProps) {
   return (
     <button
       onClick={onClick}
@@ -46,22 +48,29 @@ export function MiniDay({ day, isToday, isSelected, onClick }: MiniDayProps) {
         isSelected && 'bg-blue-50'
       )}
     >
-      {day}
+      {format(date, 'd')}
     </button>
   )
 }
 
 export function MiniCalendarGrid() {
+  const { state, selectDate } = useCalendar()
+  const monthStart = startOfMonth(state.currentMonth)
+  const monthEnd = endOfMonth(state.currentMonth)
+  const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
+
   return (
     <div className="grid grid-cols-7 gap-1 text-center text-xs">
       {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
         <MiniDayHeader key={day} day={day} />
       ))}
-      {Array.from({ length: 35 }).map((_, i) => (
+      {days.map((date) => (
         <MiniDay
-          key={i}
-          day={i + 1}
-          isToday={i + 1 === new Date().getDate()}
+          key={date.toISOString()}
+          date={date}
+          isToday={isSameDay(date, new Date())}
+          isSelected={isSameDay(date, state.selectedDate)}
+          onClick={() => selectDate(date)}
         />
       ))}
     </div>

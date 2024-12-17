@@ -1,8 +1,9 @@
 'use client'
 
 import { Search } from 'lucide-react'
-import { format, addDays, startOfWeek } from 'date-fns'
+import { format, addDays, startOfWeek, isSameDay } from 'date-fns'
 import { CalendarNavButton } from '@/components/ui/calendar-nav-button'
+import { useCalendar } from '@/contexts/calendar-context'
 
 export function AgendaHeader() {
   return (
@@ -33,34 +34,48 @@ export function AgendaItem({ time, title, color = 'blue' }: AgendaItemProps) {
 
 interface AgendaDayProps {
   date: Date
-  children?: React.ReactNode
+  events: Array<{
+    id: string
+    title: string
+    start: Date
+    color: string
+  }>
 }
 
-export function AgendaDay({ date, children }: AgendaDayProps) {
+export function AgendaDay({ date, events }: AgendaDayProps) {
+  if (events.length === 0) return null
+
   return (
     <div>
       <h3 className="mb-2 text-sm font-medium">
         {format(date, 'EEEE, MMM d')}
       </h3>
-      <div className="space-y-2">{children}</div>
+      <div className="space-y-2">
+        {events.map((event) => (
+          <AgendaItem
+            key={event.id}
+            time={format(event.start, 'h:mm a')}
+            title={event.title}
+            color={event.color}
+          />
+        ))}
+      </div>
     </div>
   )
 }
 
 export function AgendaItems() {
-  const today = new Date()
-  const weekStart = startOfWeek(today)
+  const { state } = useCalendar()
+  const weekStart = startOfWeek(state.selectedDate)
 
   return (
     <div className="space-y-4">
       {Array.from({ length: 7 }).map((_, i) => {
         const date = addDays(weekStart, i)
-        return (
-          <AgendaDay key={i} date={date}>
-            <AgendaItem time="10:00 AM" title="Team sync" />
-            <AgendaItem time="2:00 PM" title="Design review" color="green" />
-          </AgendaDay>
+        const dayEvents = state.events.filter((event) =>
+          isSameDay(event.start, date)
         )
+        return <AgendaDay key={i} date={date} events={dayEvents} />
       })}
     </div>
   )
